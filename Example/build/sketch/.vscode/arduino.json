@@ -1,0 +1,9 @@
+#line 1 "C:\\Users\\SVR-DEV04\\Documents\\Proyectos\\Dispensadora_E\\Example\\.vscode\\arduino.json"
+{
+    "sketch": "Example.ino",
+    "output": "build",
+    "configuration": "cpu=atmega2560",
+    "board": "arduino:avr:mega",
+    "port": "COM3",
+    "programmer": "avrispmkii"
+}

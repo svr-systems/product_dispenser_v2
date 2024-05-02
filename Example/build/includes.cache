@@ -1,0 +1,52 @@
+[
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\SVR-DEV04\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino"
+  },
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\SVR-DEV04\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\mega"
+  },
+  {
+    "Sourcefile": "C:\\Users\\SVR-DEV04\\Documents\\Proyectos\\Dispensadora_E\\Example\\build\\sketch\\Example.ino.cpp",
+    "Include": "Sodaq_DS3231.h",
+    "Includepath": "C:\\Users\\SVR-DEV04\\Documents\\Arduino\\libraries\\Sodaq_DS3231\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\SVR-DEV04\\Documents\\Proyectos\\Dispensadora_E\\Example\\build\\sketch\\Example.ino.cpp",
+    "Include": "Wire.h",
+    "Includepath": "C:\\Users\\SVR-DEV04\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\libraries\\Wire\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\SVR-DEV04\\Documents\\Proyectos\\Dispensadora_E\\Example\\build\\sketch\\Example.ino.cpp",
+    "Include": "LiquidCrystal_I2C.h",
+    "Includepath": "C:\\Users\\SVR-DEV04\\Documents\\Arduino\\libraries\\LiquidCrystal_I2C"
+  },
+  {
+    "Sourcefile": "C:\\Users\\SVR-DEV04\\Documents\\Proyectos\\Dispensadora_E\\Example\\build\\sketch\\Example.ino.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\SVR-DEV04\\Documents\\Arduino\\libraries\\Sodaq_DS3231\\src\\Sodaq_DS3231.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\SVR-DEV04\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\libraries\\Wire\\src\\Wire.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\SVR-DEV04\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\libraries\\Wire\\src\\utility\\twi.c",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\SVR-DEV04\\Documents\\Arduino\\libraries\\LiquidCrystal_I2C\\LiquidCrystal_I2C.cpp",
+    "Include": "",
+    "Includepath": null
+  }
+]
