@@ -1,13 +1,15 @@
-#include <Sodaq_DS3231.h>
+#include <RTClib.h>
 #include <Wire.h>
+#include <EEPROM.h>
 #include <LiquidCrystal_I2C.h>
 
 //Arrays
 byte leds[6] = {44, 42, 40, 38, 36, 34};
 byte cstmr_btns[6] = {45, 43, 41, 39, 37, 35};
-String products[6] = {"FABULOSO", "PINOL", "SALVO", "SUAVITEL", "CLORALEX", "VEL"};
-byte pump_amounts[6] = {10, 5, 20, 9, 3, 15};
-int pump_times[6] = {6000, 3000, 5000, 1200, 500, 700};g
+String products[6] = {"Producto 1", "Producto 2", "Producto 3", "Producto 4", "Producto 5", "Producto 6"};
+float pump_amounts[6] = {0, 0, 0, 0, 0, 0};
+unsigned long pump_times[6] = {0, 0, 0, 0, 0, 0};
+float liters_content[6] = {0, 0, 0, 0, 0, 0};
 //Pins
 byte prog_btn = 30;
 byte buzz_pin = 31;
@@ -15,15 +17,19 @@ byte coin_btn = 52;
 //Bools
 bool cstmr_mode = true;
 bool prog_mode = false;
-//EPROM
+
 byte cstmr_step = 1;
 byte prog_step = 1;
 byte product_slct;
-byte prog_slct = 1;
-byte credits;
-float liters;
+byte prog_slct = 0;
+byte prog_change = 1;
+int credits;
+float liters = 0;
 
-//lcd
+//Reloj
+RTC_DS3231 rtc;
+
+//LCD
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 void buzzHandle(int millis, byte pulses) {
@@ -60,17 +66,23 @@ void setup()
     for (byte i = 0; i < sizeof(cstmr_btns); i ++) {
         pinMode(cstmr_btns[i], INPUT_PULLUP);
     }
+    pinMode(buzz_pin, OUTPUT);
+    pinMode(coin_btn, INPUT_PULLUP);
+    pinMode(prog_btn, INPUT_PULLUP);
 
     lcd.init();
     lcd.backlight();
     lcd.clear();
-    pinMode(buzz_pin, OUTPUT);
-    pinMode(coin_btn, INPUT_PULLUP);
-    pinMode(prog_btn, INPUT_PULLUP);
+
+    rtc.begin();
+    //rtc.adjust(DateTime(__DATE__, __TIME__));
 }
 
 void loop()
 {
+
+    DateTime fecha = rtc.now();
+
     if (digitalRead(cstmr_btns[5]) == 0 && prog_mode == true) {
        
         lcd.clear();
@@ -111,37 +123,46 @@ void loop()
 
         switch (cstmr_step) {
             case 1: //Credits and product select
-                
-                if (digitalRead(cstmr_btns[0]) == 0) {
-                    
-                    product_slct = 0;
-                    cstmr_step ++;
-                    buzzHandle(100, 1);
-                }
-                else if (digitalRead(cstmr_btns[1]) == 0) {
-                    product_slct = 1;
-                    cstmr_step ++;
-                    buzzHandle(100, 1);
-                }
-                else if (digitalRead(cstmr_btns[2]) == 0) {
-                    product_slct = 2;
-                    cstmr_step ++;
-                    buzzHandle(100, 1);
-                }
-                else if (digitalRead(cstmr_btns[3]) == 0) {
-                    product_slct = 3;
-                    cstmr_step ++;
-                    buzzHandle(100, 1);
-                }
-                else if (digitalRead(cstmr_btns[4]) == 0) {
-                    product_slct = 4;
-                    cstmr_step ++;
-                    buzzHandle(100, 1);
-                }
-                else if (digitalRead(cstmr_btns[5]) == 0) {
-                    product_slct = 5;
-                    cstmr_step ++;
-                    buzzHandle(100, 1);
+                if (credits > 0) {
+                    if (digitalRead(cstmr_btns[0]) == 0 && credits >= pump_amounts[0]) {
+                        while (digitalRead(cstmr_btns[0]) == 0) {}
+                        
+                        product_slct = 0;
+                        cstmr_step ++;
+                        buzzHandle(100, 1);
+                    }
+                    else if (digitalRead(cstmr_btns[1]) == 0 && credits >= pump_amounts[1]) {
+                        while (digitalRead(cstmr_btns[1]) == 0) {}
+
+                        product_slct = 1;
+                        cstmr_step ++;
+                        buzzHandle(100, 1);
+                    }
+                    else if (digitalRead(cstmr_btns[2]) == 0 && credits >= pump_amounts[2]) {
+                        while (digitalRead(cstmr_btns[2]) == 0) {}
+
+                        product_slct = 2;
+                        cstmr_step ++;
+                        buzzHandle(100, 1);
+                    }
+                    else if (digitalRead(cstmr_btns[3]) == 0 && credits >= pump_amounts[3]) {
+                        while (digitalRead(cstmr_btns[3]) == 0) {}
+                        product_slct = 3;
+                        cstmr_step ++;
+                        buzzHandle(100, 1);
+                    }
+                    else if (digitalRead(cstmr_btns[4]) == 0 && credits >= pump_amounts[4]) {
+                        while (digitalRead(cstmr_btns[4]) == 0) {}
+                        product_slct = 4;
+                        cstmr_step ++;
+                        buzzHandle(100, 1);
+                    }
+                    else if (digitalRead(cstmr_btns[5]) == 0 && credits >= pump_amounts[5]) {
+                        while (digitalRead(cstmr_btns[5]) == 0) {}
+                        product_slct = 5;
+                        cstmr_step ++;
+                        buzzHandle(100, 1);
+                    }
                 }
 
                 if (digitalRead(coin_btn) == 0) {
@@ -157,14 +178,16 @@ void loop()
                 }
             break;
 
-            case 2: //Packaging
+            case 2: //
                 liters = credits / (float)pump_amounts[product_slct];
 
                 lcd.clear();
+                
                 lcd.setCursor(0, 1);
                 lcd.print("   COLOQUE ENVASE");
                 lcd.setCursor(0, 2);
                 lcd.print(lcdCenterStr((String)liters + " L"));
+                buzzHandle(500, 10);
                 cstmr_step ++;
             break;
 
@@ -176,13 +199,13 @@ void loop()
                 lcd.print(lcdCenterStr("SURTIENDO " + (String)liters + " L"));
                 lcd.setCursor(0, 3);
                 lcd.print("Espere un momento...");
-                delay(pump_times[product_slct - 1] * liters);
+                delay(pump_times[product_slct] * liters);
                 cstmr_step ++;
             break;
 
             case 4: //Process completed
                 setLeds(0);
-
+                liters_content[product_slct] -= liters;
                 lcd.clear();
                 buzzHandle(100, 3);
                 lcd.setCursor(0, 1);
@@ -206,6 +229,8 @@ void loop()
     {
         if (prog_mode == true) 
         {
+            setLeds(0);
+
             switch (prog_step) {
                 case 1:
                     lcd.setCursor(0,1);
@@ -214,25 +239,170 @@ void loop()
                     lcd.print(lcdCenterStr("ACTIVADO"));
                     delay(1500);
                     credits = 0;
+                    prog_change = 1;
                     lcd.clear();
                     prog_step ++;
                 break;
 
                 case 2:
-
                     if (digitalRead(prog_btn) == 0) {
+                        while (digitalRead(prog_btn) == 0) {}
+                        lcd.clear();
+                        prog_change ++;
+                        buzzHandle(100, 1);
+                    }
+                    else if (prog_change == 4) {
+                        prog_change = 0;
+                    } 
+                    
+                    if (prog_change == 1) {
+                        lcd.setCursor(0,1);
+                        lcd.print(lcdCenterStr("-CAMBIAR PRECIO-"));
+                    }
+                    else if (prog_change == 2) {
+                        lcd.setCursor(0,1);
+                        lcd.print(lcdCenterStr("-CAMBIAR TIEMPO-"));
+                    }
+                    else if (prog_change == 3) {
+                        lcd.setCursor(0,1);
+                        lcd.print(lcdCenterStr("-RELLENAR-"));
+                    }
+                    else if (prog_change == 4) {
+                        lcd.setCursor(0,1);
+                        lcd.print(lcdCenterStr("-HORARIO-"));
+                    }
+
+                    if (digitalRead(cstmr_btns[0]) == 0) {
+                        while (digitalRead(cstmr_btns[0]) == 0) {}
+                        buzzHandle(100, 1);
+                        lcd.clear();
+                        if (prog_change == 0) {
+                            prog_step = 4;
+                        }
+                        else {
+                            prog_step ++;
+                        }
+                    }
+                break;
+
+                case 3:
+                    if (prog_slct == prog_slct) {
+                        lcd.setCursor(0, 1);
+                        lcd.print(lcdCenterStr(products[prog_slct]));
+                    } 
+                    
+                    if (digitalRead(prog_btn) == 0) {
+                        while (digitalRead(prog_btn) == 0) {}
                         lcd.clear();
                         prog_slct ++;
                         buzzHandle(100, 1);
-                        delay(350);
                     }
                     else if (prog_slct == 6) {
                         prog_slct = 0;
                     }
+                    else if (digitalRead(cstmr_btns[0]) == 0) {
+                        while(digitalRead(cstmr_btns[0]) == 0) {}
+                        buzzHandle(100, 1);
+                        lcd.clear();
+                        prog_step ++;
+                    }
+                    else if (digitalRead(cstmr_btns[1]) == 0) {
+                        while(digitalRead(cstmr_btns[1]) == 0) {}
+                        buzzHandle(100, 1);
+                        prog_slct = 0;
+                        prog_change = 1;
+                        prog_step --;
+                    }
+                break;
 
-                    if (prog_slct == prog_slct) {
-                        lcd.setCursor(0, 1);
-                        lcd.print(lcdCenterStr(products[prog_slct]));
+                case 4:
+                    if (prog_change == 1) {
+
+                        lcd.setCursor(0,1);
+                        lcd.print(lcdCenterStr("PRECIO / LITRO"));
+                        lcd.setCursor(0,2);
+                        lcd.print(lcdCenterStr("$" + (String)pump_amounts[prog_slct]));
+
+                        if (digitalRead(cstmr_btns[0]) == 0) {
+                            while (digitalRead(cstmr_btns[0]) == 0) {}
+                            pump_amounts[prog_slct] += .50;
+                            buzzHandle(100, 1);
+                        }
+                        else if (digitalRead(cstmr_btns[1]) == 0) {
+                            while (digitalRead(cstmr_btns[1]) == 0) {}
+                            pump_amounts[prog_slct] -= .50;
+                            buzzHandle(100, 1);
+                        }
+                        else if (digitalRead(prog_btn) == 0) {
+                            while (digitalRead(prog_btn) == 0) {}
+                            buzzHandle(100, 1);
+                            lcd.clear();
+                            prog_slct = 0;
+                            prog_step = 2;
+                        }
+                    }
+                    else if (prog_change == 2) {
+                        lcd.setCursor(0,1);
+                        lcd.print(lcdCenterStr("TIEMPO DE BOMBA"));
+                        lcd.setCursor(0,2);
+                        lcd.print(lcdCenterStr((String)pump_times[prog_slct]));
+
+                        if (digitalRead(cstmr_btns[0]) == 0) {
+                            while (digitalRead(cstmr_btns[0]) == 0) {}
+                            buzzHandle(100, 1);
+                            pump_times[prog_slct] = pulseIn(cstmr_btns[0], LOW, 10000000);
+                        }
+                        else if (digitalRead(prog_btn) == 0) {
+                            while (digitalRead(prog_btn) == 0) {}
+                            buzzHandle(100, 1);
+                            lcd.clear();
+                            prog_change = 1;
+                            prog_slct = 0;
+                            prog_step = 2;
+                        }
+                    }
+                    else if (prog_change == 3) {
+
+                        lcd.setCursor(0,1);
+                        lcd.print(lcdCenterStr("CANTIDAD PRODUCTO"));
+                        lcd.setCursor(0,2);
+                        lcd.print(lcdCenterStr((String)liters_content[prog_slct]));
+
+                        if (digitalRead(cstmr_btns[0]) == 0) {
+                            while (digitalRead(cstmr_btns[0]) == 0){}
+                            buzzHandle(100, 1);
+                            liters_content[prog_slct] += 1;
+                        }
+                        else if (digitalRead(cstmr_btns[1]) == 0) {
+                            while (digitalRead(cstmr_btns[1]) == 0) {}
+                            buzzHandle(100, 1);
+                            liters_content[prog_slct] -= 1;
+                        }
+                        else if (digitalRead(prog_btn) == 0) {
+                            while (digitalRead(prog_btn) == 0) {}
+                            buzzHandle(100, 1);
+                            lcd.clear();
+                            prog_step = 2;
+                            prog_change = 1;
+                            prog_slct = 0;
+                        }
+                    }
+                    else if (prog_change == 0) {
+                        lcd.setCursor(0,0);
+                        lcd.print(lcdCenterStr("HORARIO"));
+                        lcd.setCursor(0,2);
+                        lcd.print(lcdCenterStr((String)fecha.hour() + ":" + (String)fecha.minute()));
+                        lcd.setCursor(0,3);
+                        lcd.print(lcdCenterStr((String)fecha.day() + "/" + (String)fecha.month() + "/" + (String)fecha.year()));
+
+                        if (digitalRead(prog_btn) == 0) {
+                            while (digitalRead(prog_btn) == 0) {}
+                            buzzHandle(100, 1);
+                            lcd.clear();
+                            prog_step = 2;
+                            prog_change = 1;
+                            prog_slct = 0;
+                        }
                     }
                 break;
             }
