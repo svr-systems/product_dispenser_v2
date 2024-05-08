@@ -1,34 +1,38 @@
+#include <SD.h>
 #include <RTClib.h>
 #include <Wire.h>
 #include <EEPROM.h>
 #include <LiquidCrystal_I2C.h>
+#include <SPI.h>
 
 //Arrays
-byte leds[6] = {44, 42, 40, 38, 36, 34};
-byte cstmr_btns[6] = {45, 43, 41, 39, 37, 35};
-String products[6] = {"Producto 1", "Producto 2", "Producto 3", "Producto 4", "Producto 5", "Producto 6"};
-float pump_amounts[6] = {0, 0, 0, 0, 0, 0};
-unsigned long pump_times[6] = {0, 0, 0, 0, 0, 0};
-float liters_content[6] = {0, 0, 0, 0, 0, 0};
+const byte leds[6] = {44, 42, 40, 38, 36, 34};
+const byte cstmr_btns[6] = {45, 43, 41, 39, 37, 35};
+const String products[6] = {"PRODUCTO 1", "PRODUCTO 2", "PRODUCTO 3", "PRODUCTO 4", "PRODUCTO 5", "PRODUCTO 6"};
+float pump_amounts[6];
+unsigned long pump_times[6];
+float liters_content[6];
 //Pins
-byte prog_btn = 30;
-byte buzz_pin = 31;
-byte coin_btn = 52;
+const byte prog_btn = 30;
+const byte buzz_pin = 31;
+const byte coin_btn = 49;
 //Bools
 bool cstmr_mode = true;
 bool prog_mode = false;
-
+//Steps
 byte cstmr_step = 1;
 byte prog_step = 1;
 byte product_slct;
 byte prog_slct = 0;
 byte prog_change = 1;
+//Counts
 int credits;
-float liters = 0;
-
+float liters;
+//SD
+#define SSpin 53
+File archive;
 //Reloj
 RTC_DS3231 rtc;
-
 //LCD
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
@@ -76,14 +80,27 @@ void setup()
 
     rtc.begin();
     //rtc.adjust(DateTime(__DATE__, __TIME__));
+
+    //EEPROM
+    for (byte i = 0; i < sizeof(pump_amounts); i ++ ) {
+        pump_amounts[i] = EEPROM.read(i);
+        pump_times[i] = EEPROM.read(i + 6);
+        liters_content[i] = EEPROM.read(i + 12);
+    }
 }
 
 void loop()
 {
 
-    DateTime fecha = rtc.now();
+    DateTime Date = rtc.now();
 
     if (digitalRead(cstmr_btns[5]) == 0 && prog_mode == true) {
+
+         for (byte i = 0; i < sizeof(pump_amounts); i ++ ) {
+            EEPROM.write(i, pump_amounts[i]);
+            EEPROM.write(i + 6, pump_times[i]);
+            EEPROM.write(i + 12, liters_content[i]);
+        }
        
         lcd.clear();
         buzzHandle(100, 1);
@@ -124,40 +141,40 @@ void loop()
         switch (cstmr_step) {
             case 1: //Credits and product select
                 if (credits > 0) {
-                    if (digitalRead(cstmr_btns[0]) == 0 && credits >= pump_amounts[0]) {
+                    if (digitalRead(cstmr_btns[0]) == 0 && credits >= pump_amounts[0] && liters_content[0] >= 1) {
                         while (digitalRead(cstmr_btns[0]) == 0) {}
                         
                         product_slct = 0;
                         cstmr_step ++;
                         buzzHandle(100, 1);
                     }
-                    else if (digitalRead(cstmr_btns[1]) == 0 && credits >= pump_amounts[1]) {
+                    else if (digitalRead(cstmr_btns[1]) == 0 && credits >= pump_amounts[1] && liters_content[1] >= 1) {
                         while (digitalRead(cstmr_btns[1]) == 0) {}
 
                         product_slct = 1;
                         cstmr_step ++;
                         buzzHandle(100, 1);
                     }
-                    else if (digitalRead(cstmr_btns[2]) == 0 && credits >= pump_amounts[2]) {
+                    else if (digitalRead(cstmr_btns[2]) == 0 && credits >= pump_amounts[2] && liters_content[2] >= 1) {
                         while (digitalRead(cstmr_btns[2]) == 0) {}
 
                         product_slct = 2;
                         cstmr_step ++;
                         buzzHandle(100, 1);
                     }
-                    else if (digitalRead(cstmr_btns[3]) == 0 && credits >= pump_amounts[3]) {
+                    else if (digitalRead(cstmr_btns[3]) == 0 && credits >= pump_amounts[3] && liters_content[3] >= 1) {
                         while (digitalRead(cstmr_btns[3]) == 0) {}
                         product_slct = 3;
                         cstmr_step ++;
                         buzzHandle(100, 1);
                     }
-                    else if (digitalRead(cstmr_btns[4]) == 0 && credits >= pump_amounts[4]) {
+                    else if (digitalRead(cstmr_btns[4]) == 0 && credits >= pump_amounts[4] && liters_content[4] >= 1) {
                         while (digitalRead(cstmr_btns[4]) == 0) {}
                         product_slct = 4;
                         cstmr_step ++;
                         buzzHandle(100, 1);
                     }
-                    else if (digitalRead(cstmr_btns[5]) == 0 && credits >= pump_amounts[5]) {
+                    else if (digitalRead(cstmr_btns[5]) == 0 && credits >= pump_amounts[5] && liters_content[5] >= 1) {
                         while (digitalRead(cstmr_btns[5]) == 0) {}
                         product_slct = 5;
                         cstmr_step ++;
@@ -198,7 +215,7 @@ void loop()
                 lcd.setCursor(0, 1);
                 lcd.print(lcdCenterStr("SURTIENDO " + (String)liters + " L"));
                 lcd.setCursor(0, 3);
-                lcd.print("Espere un momento...");
+                lcd.print("ESPERE UN MOMENTO...");
                 delay(pump_times[product_slct] * liters);
                 cstmr_step ++;
             break;
@@ -366,7 +383,7 @@ void loop()
                         lcd.setCursor(0,1);
                         lcd.print(lcdCenterStr("CANTIDAD PRODUCTO"));
                         lcd.setCursor(0,2);
-                        lcd.print(lcdCenterStr((String)liters_content[prog_slct]));
+                        lcd.print(lcdCenterStr((String)liters_content[prog_slct] + " L"));
 
                         if (digitalRead(cstmr_btns[0]) == 0) {
                             while (digitalRead(cstmr_btns[0]) == 0){}
@@ -391,9 +408,9 @@ void loop()
                         lcd.setCursor(0,0);
                         lcd.print(lcdCenterStr("HORARIO"));
                         lcd.setCursor(0,2);
-                        lcd.print(lcdCenterStr((String)fecha.hour() + ":" + (String)fecha.minute()));
+                        lcd.print(lcdCenterStr((String)Date.hour() + ":" + (String)Date.minute()));
                         lcd.setCursor(0,3);
-                        lcd.print(lcdCenterStr((String)fecha.day() + "/" + (String)fecha.month() + "/" + (String)fecha.year()));
+                        lcd.print(lcdCenterStr((String)Date.day() + "/" + (String)Date.month() + "/" + (String)Date.year()));
 
                         if (digitalRead(prog_btn) == 0) {
                             while (digitalRead(prog_btn) == 0) {}
