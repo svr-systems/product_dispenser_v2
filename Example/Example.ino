@@ -166,7 +166,7 @@ void loop()
         lcd.print ("  MODO PROGRAMADOR");
         lcd.setCursor(0,2);
         lcd.print(lcdCenterStr("DESACTIVADO"));
-        delay(1500);
+        buzzHandle(300, 4);
         prog_mode = false;
         cstmr_mode = true;
         cstmr_step = 1;
@@ -186,14 +186,22 @@ void loop()
 
 	if (cstmr_mode == true) 
     {
-        setLeds(1);
 
         if(credits == 0) {
-        lcd.display();
-        lcd.setCursor(0,1);
-        lcd.print(lcdCenterStr("BIENVENIDO"));
-        lcd.setCursor(0,3);
-        lcd.print("  INGRESE CREDITOS");
+            lcd.display();
+            lcd.setCursor(0,1);
+            lcd.print(lcdCenterStr("BIENVENIDO"));
+            lcd.setCursor(0,3);
+            lcd.print("  INGRESE CREDITOS");
+
+            for (byte i = 0; i < sizeof(leds); i++ ) {
+                if (liters_content[i] < 1) {
+                    digitalWrite(leds[i], 0);
+                }
+                else {
+                    digitalWrite(leds[i], 1);
+                }
+            }
         }
 
         switch (cstmr_step) {
@@ -238,9 +246,25 @@ void loop()
                         cstmr_step ++;
                         buzzHandle(100, 1);
                     }
+                    
+                    for (byte i = 0; i < sizeof(pump_amounts); i ++) {
+                        if (digitalRead(cstmr_btns[i]) == 0 && credits < pump_amounts[i]) {
+                            lcd.clear();
+                            lcd.setCursor(0,1);
+                            lcd.print(lcdCenterStr("CREDITOS INSUFICIENTES"));
+                            buzzHandle(100, 4);
+                            delay(1000);
+                            lcd.clear();
+                            lcd.setCursor(0,1);
+                            lcd.print(lcdCenterStr("BIENVENIDO"));
+                            lcd.setCursor(0,3);
+                            lcd.print("  INGRESE CREDITOS");
+                        }
+                    }
+                    
                 }
 
-                if (digitalRead(coin_btn) == 0) {
+                if (digitalRead(coin_btn) == 0 && credits <= 94) {
                 while (digitalRead(coin_btn) == 0) {}
                 credits += 6;
                 buzzHandle(100, 1);
@@ -262,7 +286,7 @@ void loop()
                 lcd.print("   COLOQUE ENVASE");
                 lcd.setCursor(0, 2);
                 lcd.print(lcdCenterStr((String)liters + " L"));
-                buzzHandle(500, 10);
+                buzzHandle(250, 10);
                 cstmr_step ++;
             break;
 
@@ -287,13 +311,31 @@ void loop()
                 lcd.print("GRACIAS POR COMPRAR!");
                 lcd.setCursor(0, 3);
                 lcd.print("   VUELVA PRONTO");
-                delay(2000);
+                delay(3000);
+                
+                if (!SD.exists("/reports/" + (String)Date.year() + "_" + (String)Date.month())) {
+                    SD.mkdir("/reports/" + (String)Date.year() + "_" + (String)Date.month());
+                    Serial.println("Carpeta creada correctamente");
+                }
+                else {
+                    Serial.println("La carpeta ya existe");
+                }
+
+                archive = SD.open("/reports/" + (String)Date.year() + "_" + (String)Date.month()  + "/" + (String)Date.day() + ".txt", FILE_WRITE);
+
+                if (archive) {
+                    archive.println((String)Date.year() + "-" + (String)Date.month() + "-" + (String)Date.day() + " P" + (String)product_slct + " " + (String)credits + " " + (String)liters);
+                    archive.close();
+                    Serial.println("Archivo creado correctamente");
+                }
+                else {
+                    Serial.println("Error al crear el archivo");
+                }
 
                 cstmr_step = 1;
                 credits = 0;
                 liters = 0;
                 product_slct = 0;
-                setLeds(1);
                 lcd.clear();
 
             break;
@@ -312,7 +354,7 @@ void loop()
                     lcd.print ("  MODO PROGRAMADOR");
                     lcd.setCursor(0,2);
                     lcd.print(lcdCenterStr("ACTIVADO"));
-                    delay(1500);
+                    buzzHandle(300, 4);
                     credits = 0;
                     prog_change = 1;
                     lcd.clear();
@@ -320,8 +362,8 @@ void loop()
                 break;
 
                 case 2:
-                    if (digitalRead(prog_btn) == 0) {
-                        while (digitalRead(prog_btn) == 0) {}
+                    if (digitalRead(cstmr_btns[2]) == 0) {
+                        while (digitalRead(cstmr_btns[2]) == 0) {}
                         lcd.clear();
                         prog_change ++;
                         buzzHandle(100, 1);
@@ -368,8 +410,8 @@ void loop()
                         lcd.print(lcdCenterStr(products[prog_slct]));
                     } 
                     
-                    if (digitalRead(prog_btn) == 0) {
-                        while (digitalRead(prog_btn) == 0) {}
+                    if (digitalRead(cstmr_btns[2]) == 0) {
+                        while (digitalRead(cstmr_btns[2]) == 0) {}
                         lcd.clear();
                         prog_slct ++;
                         buzzHandle(100, 1);
@@ -410,8 +452,8 @@ void loop()
                             pump_amounts[prog_slct] -= .50;
                             buzzHandle(100, 1);
                         }
-                        else if (digitalRead(prog_btn) == 0) {
-                            while (digitalRead(prog_btn) == 0) {}
+                        else if (digitalRead(cstmr_btns[2]) == 0) {
+                            while (digitalRead(cstmr_btns[2]) == 0) {}
                             buzzHandle(100, 1);
                             lcd.clear();
                             prog_slct = 0;
@@ -429,15 +471,19 @@ void loop()
                         if (btn_state == 0 && !btn_pressed) {
                             startTime = millis();
                             btn_pressed = true;
+                            lcd.clear();
+                            lcd.setCursor(0,3);
+                            lcd.print(lcdCenterStr(" CALIBRANDO..."));
                         }
                         else if (btn_state == 1 && btn_pressed) {
+                            lcd.clear();
                             endTime = millis();
                             btn_pressed = false;
                             elapsedTime = endTime - startTime;
                             pump_times[prog_slct] = elapsedTime; 
                         }
-                        else if (digitalRead(prog_btn) == 0) {
-                            while (digitalRead(prog_btn) == 0) {}
+                        else if (digitalRead(cstmr_btns[2]) == 0) {
+                            while (digitalRead(cstmr_btns[2]) == 0) {}
                             buzzHandle(100, 1);
                             lcd.clear();
                             prog_change = 1;
@@ -479,8 +525,8 @@ void loop()
                         lcd.setCursor(0,3);
                         lcd.print(lcdCenterStr((String)Date.day() + "/" + (String)Date.month() + "/" + (String)Date.year()));
 
-                        if (digitalRead(prog_btn) == 0) {
-                            while (digitalRead(prog_btn) == 0) {}
+                        if (digitalRead(cstmr_btns[2]) == 0) {
+                            while (digitalRead(cstmr_btns[2]) == 0) {}
                             buzzHandle(100, 1);
                             lcd.clear();
                             prog_step = 2;
