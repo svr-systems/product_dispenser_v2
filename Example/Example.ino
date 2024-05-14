@@ -1,7 +1,6 @@
 #include <SD.h>
 #include <RTClib.h>
 #include <Wire.h>
-#include <EEPROM.h>
 #include <LiquidCrystal_I2C.h>
 #include <SPI.h>
 
@@ -36,6 +35,11 @@ RTC_DS3231 rtc;
 //LCD
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
+unsigned long startTime = 0;
+unsigned long endTime = 0;
+unsigned long elapsedTime = 0;
+bool btn_pressed = false;
+
 void buzzHandle(int millis, byte pulses) {
   for (byte i = 0; i < pulses; i++) {
     digitalWrite(buzz_pin, HIGH);
@@ -61,9 +65,23 @@ String lcdCenterStr(String str) {
   return str_temp + str;
 }
 
+int readIntFromFile() {
+  char buffer[10];
+  archive.readBytesUntil('\n', buffer, sizeof(buffer));
+  return atoi(buffer);
+}
+
+float readFloatFromFile() {
+  char buffer[10];
+  archive.readBytesUntil('\n', buffer, sizeof(buffer));
+  return atof(buffer);
+}
+
 
 void setup()
 {
+    Serial.begin(9600);
+
     for ( byte i = 0; i < sizeof(leds); i ++) {
         pinMode(leds[i], OUTPUT);
     }
@@ -78,15 +96,42 @@ void setup()
     lcd.backlight();
     lcd.clear();
 
+    Serial.println("Inicializando tarjeta");
+
+    if (!SD.begin(SSpin)) {
+        Serial.println("Fallo en inicialización");
+        return;
+    }
+
+    archive = SD.open("config.txt");
+
+    if (archive) {
+        pump_amounts[0] = readFloatFromFile();
+        pump_times[0] = readFloatFromFile();
+        liters_content[0] = readFloatFromFile();
+        pump_amounts[1] = readFloatFromFile();
+        pump_times[1] = readFloatFromFile();
+        liters_content[1] = readFloatFromFile();
+        pump_amounts[2] = readFloatFromFile();
+        pump_times[2] = readFloatFromFile();
+        liters_content[2] = readFloatFromFile();
+        pump_amounts[3] = readFloatFromFile();
+        pump_times[3] = readFloatFromFile();
+        liters_content[3] = readFloatFromFile();
+        pump_amounts[4] = readFloatFromFile();
+        pump_times[4] = readFloatFromFile();
+        liters_content[4] = readFloatFromFile();
+        pump_amounts[5] = readFloatFromFile();
+        pump_times[5] = readFloatFromFile();
+        liters_content[5] = readFloatFromFile();
+
+        archive.close();
+    }
+
+    Serial.println("Inicialización completa");
+
     rtc.begin();
     //rtc.adjust(DateTime(__DATE__, __TIME__));
-
-    //EEPROM
-    for (byte i = 0; i < sizeof(pump_amounts); i ++ ) {
-        pump_amounts[i] = EEPROM.read(i);
-        pump_times[i] = EEPROM.read(i + 6);
-        liters_content[i] = EEPROM.read(i + 12);
-    }
 }
 
 void loop()
@@ -96,12 +141,25 @@ void loop()
 
     if (digitalRead(cstmr_btns[5]) == 0 && prog_mode == true) {
 
-         for (byte i = 0; i < sizeof(pump_amounts); i ++ ) {
-            EEPROM.write(i, pump_amounts[i]);
-            EEPROM.write(i + 6, pump_times[i]);
-            EEPROM.write(i + 12, liters_content[i]);
+        SD.remove("config.txt");
+        archive = SD.open("config.txt", FILE_WRITE);
+
+        if (archive) {
+
+            for (byte i = 0; i < sizeof(pump_amounts); i++) {
+                archive.println(pump_amounts[i]);
+                archive.println(pump_times[i]);
+                archive.println(liters_content[i]);
+            } 
+
+            Serial.println("Hecho");
+            archive.close();
+
         }
-       
+        else {
+            Serial.println("Error");
+        }
+
         lcd.clear();
         buzzHandle(100, 1);
         lcd.setCursor(0,1);
@@ -295,9 +353,11 @@ void loop()
                         lcd.clear();
                         if (prog_change == 0) {
                             prog_step = 4;
+                            delay(350);
                         }
                         else {
                             prog_step ++;
+                            delay(350);
                         }
                     }
                 break;
@@ -362,12 +422,19 @@ void loop()
                         lcd.setCursor(0,1);
                         lcd.print(lcdCenterStr("TIEMPO DE BOMBA"));
                         lcd.setCursor(0,2);
-                        lcd.print(lcdCenterStr((String)pump_times[prog_slct]));
+                        lcd.print(lcdCenterStr((String)pump_times[prog_slct] + " ms"));
+                        
+                        byte btn_state = digitalRead(cstmr_btns[0]);
 
-                        if (digitalRead(cstmr_btns[0]) == 0) {
-                            while (digitalRead(cstmr_btns[0]) == 0) {}
-                            buzzHandle(100, 1);
-                            pump_times[prog_slct] = pulseIn(cstmr_btns[0], LOW, 10000000);
+                        if (btn_state == 0 && !btn_pressed) {
+                            startTime = millis();
+                            btn_pressed = true;
+                        }
+                        else if (btn_state == 1 && btn_pressed) {
+                            endTime = millis();
+                            btn_pressed = false;
+                            elapsedTime = endTime - startTime;
+                            pump_times[prog_slct] = elapsedTime; 
                         }
                         else if (digitalRead(prog_btn) == 0) {
                             while (digitalRead(prog_btn) == 0) {}
