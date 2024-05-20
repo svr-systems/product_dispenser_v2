@@ -11,6 +11,7 @@ const String products[6] = {"PRODUCTO 1", "PRODUCTO 2", "PRODUCTO 3", "PRODUCTO 
 float pump_amounts[6];
 unsigned long pump_times[6];
 float liters_content[6];
+const byte bombs[2] = {46, 28};
 //Pins
 const byte prog_btn = 30;
 const byte buzz_pin = 31;
@@ -88,6 +89,9 @@ void setup()
     for (byte i = 0; i < sizeof(cstmr_btns); i ++) {
         pinMode(cstmr_btns[i], INPUT_PULLUP);
     }
+    for (byte i = 0; i < sizeof(bombs); i ++) {
+        pinMode(bombs[i], OUTPUT);
+    }
     pinMode(buzz_pin, OUTPUT);
     pinMode(coin_btn, INPUT_PULLUP);
     pinMode(prog_btn, INPUT_PULLUP);
@@ -139,7 +143,7 @@ void loop()
 
     DateTime Date = rtc.now();
 
-    if (digitalRead(cstmr_btns[5]) == 0 && prog_mode == true) {
+    if (digitalRead(prog_btn) == 0 && prog_mode == true) {
 
         SD.remove("config.txt");
         archive = SD.open("config.txt", FILE_WRITE);
@@ -298,7 +302,9 @@ void loop()
                 lcd.print(lcdCenterStr("SURTIENDO " + (String)liters + " L"));
                 lcd.setCursor(0, 3);
                 lcd.print("ESPERE UN MOMENTO...");
+                digitalWrite(bombs[product_slct], 1);
                 delay(pump_times[product_slct] * liters);
+                digitalWrite(bombs[product_slct], 0);
                 cstmr_step ++;
             break;
 
@@ -474,9 +480,11 @@ void loop()
                             lcd.clear();
                             lcd.setCursor(0,3);
                             lcd.print(lcdCenterStr(" CALIBRANDO..."));
+                            digitalWrite(bombs[prog_slct], 1);
                         }
                         else if (btn_state == 1 && btn_pressed) {
                             lcd.clear();
+                            digitalWrite(bombs[prog_slct], 0);
                             endTime = millis();
                             btn_pressed = false;
                             elapsedTime = endTime - startTime;
