@@ -16,6 +16,7 @@ const byte bombs[2] = {46, 28};
 const byte prog_btn = 30;
 const byte buzz_pin = 31;
 const byte coin_btn = 49;
+const byte coin = 26;
 //Bools
 bool cstmr_mode = true;
 bool prog_mode = false;
@@ -94,6 +95,7 @@ void setup()
     }
     pinMode(buzz_pin, OUTPUT);
     pinMode(coin_btn, INPUT_PULLUP);
+    pinMode(coin, INPUT);
     pinMode(prog_btn, INPUT_PULLUP);
 
     lcd.init();
@@ -268,9 +270,9 @@ void loop()
                     
                 }
 
-                if (digitalRead(coin_btn) == 0 && credits <= 94) {
-                while (digitalRead(coin_btn) == 0) {}
-                credits += 6;
+                if (digitalRead(coin) == 1  && credits <= 94 || digitalRead(coin_btn) == 0) {
+                //while (digitalRead(coin) == 0) {}
+                credits ++;
                 buzzHandle(100, 1);
 
                 lcd.clear();
