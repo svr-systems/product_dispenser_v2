@@ -11,7 +11,7 @@ const String products[6] = {"PRODUCTO 1", "PRODUCTO 2", "PRODUCTO 3", "PRODUCTO 
 float pump_amounts[6];
 unsigned long pump_times[6];
 float liters_content[6];
-const byte bombs[2] = {46, 28};
+const byte bombs[6] = {22, 24, 23, 25, 27, 29};
 // Pins
 const byte prog_btn = 30;
 const byte buzz_pin = 31;
@@ -70,13 +70,6 @@ String lcdCenterStr(String str)
         str_temp += " ";
 
     return str_temp + str;
-}
-
-int readIntFromFile()
-{
-    char buffer[10];
-    archive.readBytesUntil('\n', buffer, sizeof(buffer));
-    return atoi(buffer);
 }
 
 float readFloatFromFile(File &archive)
@@ -166,7 +159,7 @@ void setup()
     Serial.println("Inicialización completa");
 
     rtc.begin();
-    // rtc.adjust(DateTime(__DATE__, __TIME__));
+    //rtc.adjust(DateTime(__DATE__, __TIME__));
 }
 
 void loop()
@@ -248,7 +241,7 @@ void loop()
 
         switch (cstmr_step)
         {
-        case 1: // Credits and product select
+        case 1:
             if (credits > 0)
             {
                 if (digitalRead(cstmr_btns[0]) == 0 && credits >= pump_amounts[0] && liters_content[0] >= 1)
@@ -327,10 +320,9 @@ void loop()
                 }
             }
 
-            if (digitalRead(coin) == 1)
+            if (digitalRead(coin) == 1 || digitalRead(coin_btn) == 0)
             {
                 credits++;
-                // buzzHandle(100, 1);
 
                 lcd.clear();
                 lcd.setCursor(0, 1);
@@ -340,7 +332,7 @@ void loop()
             }
             break;
 
-        case 2: //
+        case 2:
             liters = credits / (float)pump_amounts[product_slct];
 
             lcd.clear();
@@ -353,7 +345,7 @@ void loop()
             cstmr_step++;
             break;
 
-        case 3: // Filling
+        case 3:
             lcd.clear();
             lcd.setCursor(0, 0);
             lcd.print(lcdCenterStr(products[product_slct]));
@@ -367,7 +359,7 @@ void loop()
             cstmr_step++;
             break;
 
-        case 4: // Process completed
+        case 4:
             setLeds(0);
             liters_content[product_slct] -= liters;
             lcd.clear();
@@ -626,9 +618,9 @@ void loop()
                         buzzHandle(100, 1);
                         liters_content[prog_slct] -= 1;
                     }
-                    else if (digitalRead(prog_btn) == 0)
+                    else if (digitalRead(cstmr_btns[2]) == 0)
                     {
-                        while (digitalRead(prog_btn) == 0)
+                        while (digitalRead(cstmr_btns[2]) == 0)
                         {
                         }
                         buzzHandle(100, 1);
