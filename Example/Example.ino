@@ -168,7 +168,7 @@ void setup()
     Serial.println("Inicialización completa");
 
     rtc.begin();
-    //rtc.adjust(DateTime(__DATE__, __TIME__));
+    rtc.adjust(DateTime(__DATE__, __TIME__));
 }
 
 void loop()
@@ -392,23 +392,6 @@ void loop()
                     lcd.setCursor(0, 3);
                     lcd.print("  INGRESE CREDITOS");
                 }
-
-
-                // for (byte i = 0; i < sizeof(pump_amounts); i++)
-                // {
-                //     if (digitalRead(cstmr_btns[i]) == 1 && credits < pump_amounts[i])
-                //     {
-                //         lcd.clear();
-                //         lcd.setCursor(0, 1);
-                //         lcd.print(lcdCenterStr("CREDITOS"));
-                //         lcd.setCursor(0,2);
-                //         lcd.print(lcdCenterStr("INSUFICIENTES"));
-                //         buzzHandle(100, 4);
-                //         delay(1000);
-                //         lcd.clear();
-                    
-                //     }
-                // }
             }
 
             if (digitalRead(coin) == 1 && test_mode == false || digitalRead(coin_btn) == 0)
@@ -461,31 +444,63 @@ void loop()
             lcd.print("   VUELVA PRONTO");
             delay(3000);
 
-            archive = SD.open("reports");
+            if (test_mode == false) {
 
-            if (!SD.exists("reports/" + (String)Date.year() + "_" + (String)Date.month()))
-            {
-                SD.mkdir("reports/" + (String)Date.year() + "_" + (String)Date.month());
-                Serial.println("Carpeta creada correctamente");
-                archive.close();
-            }
-            else
-            {
-                Serial.println("La carpeta ya existe");
-                archive.close();
-            }
+                archive = SD.open("reports");
 
-            archive = SD.open("reports/" + (String)Date.year() + "_" + (String)Date.month() + "/" + (String)Date.day() + ".txt", FILE_WRITE);
+                if (!SD.exists("reports/" + (String)Date.year() + "_" + (String)Date.month()))
+                {
+                    SD.mkdir("reports/" + (String)Date.year() + "_" + (String)Date.month());
+                    Serial.println("Carpeta creada correctamente");
+                    archive.close();
+                }
+                else
+                {
+                    Serial.println("La carpeta ya existe");
+                    archive.close();
+                }
 
-            if (archive)
-            {
-                archive.println((String)Date.year() + "-" + (String)Date.month() + "-" + (String)Date.day() + " P" + (String)product_slct + " " + (String)credits + " " + (String)liters);
-                archive.close();
-                Serial.println("Archivo creado correctamente");
+                archive = SD.open("reports/" + (String)Date.year() + "_" + (String)Date.month() + "/" + (String)Date.day() + ".txt", FILE_WRITE);
+
+                if (archive)
+                {
+                    archive.println((String)Date.year() + "-" + (String)Date.month() + "-" + (String)Date.day() + " P" + (String)product_slct + " " + (String)credits + " " + (String)liters);
+                    archive.close();
+                    Serial.println("Archivo creado correctamente");
+                }
+                else
+                {
+                    Serial.println("Error al crear el archivo");
+                }
             }
-            else
-            {
-                Serial.println("Error al crear el archivo");
+            else {
+
+                archive = SD.open("reports");
+
+                if (!SD.exists("reports/" + (String)Date.year() + "_" + (String)Date.month()))
+                {
+                    SD.mkdir("reports/" + (String)Date.year() + "_" + (String)Date.month());
+                    Serial.println("Carpeta de prueba creada correctamente");
+                    archive.close();
+                }
+                else
+                {
+                    Serial.println("La carpeta de prueba ya existe");
+                    archive.close();
+                }
+
+                archive = SD.open("reports/" + (String)Date.year() + "_" + (String)Date.month() + "/" + "TEST_" + (String)Date.day() + ".txt", FILE_WRITE);
+
+                if (archive)
+                {
+                    archive.println((String)Date.year() + "-" + (String)Date.month() + "-" + (String)Date.day() + " P" + (String)product_slct + " " + (String)credits + " " + (String)liters);
+                    archive.close();
+                    Serial.println("Archivo de prueba creado correctamente");
+                }
+                else
+                {
+                    Serial.println("Error al crear el archivo de prueba");
+                }
             }
 
             if (test_mode == true) {
