@@ -101,6 +101,18 @@ void coinInterrupt()
     }
 }
 
+void change_modeAlert(String text1, String text2)
+{
+    lcd.clear();
+    buzzHandle(100, 1);
+    lcd.setCursor(0, 1);
+    lcd.print(lcdCenterStr(text1));
+    lcd.setCursor(0, 2);
+    lcd.print(lcdCenterStr(text2));
+    buzzHandle(300, 4);
+    lcd.clear();
+}
+
 void modoprueba()
 {
     if (test_mode == true)
@@ -136,7 +148,6 @@ float readFloatFromFile(File &archive)
 
 void setup()
 {
-    Serial.begin(9600);
 
     for (byte i = 0; i < sizeof(leds); i++)
     {
@@ -163,7 +174,6 @@ void setup()
     while (!SD.begin(SSpin))
     {
         {
-            Serial.println("Fallo en inicialización");
             lcd.display();
             lcd.setCursor(0, 1);
             lcd.print(lcdCenterStr("FALLO DE"));
@@ -257,14 +267,7 @@ void loop()
         prog_mode = false;
         test_mode = true;
         credits = 100;
-        lcd.clear();
-        buzzHandle(100, 1);
-        lcd.setCursor(0, 1);
-        lcd.print(lcdCenterStr(" MODO PRUEBA"));
-        lcd.setCursor(0, 2);
-        lcd.print(lcdCenterStr("ACTIVADO"));
-        buzzHandle(300, 4);
-        lcd.clear();
+        change_modeAlert(" MODO PRUEBA", "ACTIVADO");
     }
 
     else if (digitalRead(test_btn) == 1 && test_mode == true)
@@ -276,14 +279,7 @@ void loop()
         test_mode = false;
         prog_mode = false;
         credits = 0;
-        lcd.clear();
-        buzzHandle(100, 1);
-        lcd.setCursor(0, 1);
-        lcd.print(lcdCenterStr("MODO PRUEBA"));
-        lcd.setCursor(0, 2);
-        lcd.print(lcdCenterStr("DESACTIVADO"));
-        buzzHandle(300, 4);
-        lcd.clear();
+        change_modeAlert("MODO PRUEBA", "DESACTIVADO");
     }
 
     // PROG MODE
@@ -312,21 +308,10 @@ void loop()
 
             delay(1000);
             lcd.clear();
-            Serial.println("Hecho");
             archive.close();
         }
-        else
-        {
-            Serial.println("Error");
-        }
 
-        lcd.clear();
-        buzzHandle(100, 1);
-        lcd.setCursor(0, 1);
-        lcd.print("  MODO PROGRAMADOR");
-        lcd.setCursor(0, 2);
-        lcd.print(lcdCenterStr("DESACTIVADO"));
-        buzzHandle(300, 4);
+        change_modeAlert("  MODO PROGRAMADOR", "DESACTIVADO");
         prog_mode = false;
         cstmr_mode = true;
         cstmr_step = 1;
@@ -604,12 +589,10 @@ void loop()
                 if (!SD.exists("reports/" + (String)Date.year() + "_" + (String)Date.month()))
                 {
                     SD.mkdir("reports/" + (String)Date.year() + "_" + (String)Date.month());
-                    Serial.println("Carpeta creada correctamente");
                     archive.close();
                 }
                 else
                 {
-                    Serial.println("La carpeta ya existe");
                     archive.close();
                 }
 
@@ -619,11 +602,6 @@ void loop()
                 {
                     archive.println((String)Date.year() + "-" + (String)Date.month() + "-" + (String)Date.day() + " P" + (String)product_slct + " " + (String)credits + " " + (String)liters);
                     archive.close();
-                    Serial.println("Archivo creado correctamente");
-                }
-                else
-                {
-                    Serial.println("Error al crear el archivo");
                 }
             }
             else
@@ -634,12 +612,10 @@ void loop()
                 if (!SD.exists("reports/" + (String)Date.year() + "_" + (String)Date.month()))
                 {
                     SD.mkdir("reports/" + (String)Date.year() + "_" + (String)Date.month());
-                    Serial.println("Carpeta de prueba creada correctamente");
                     archive.close();
                 }
                 else
                 {
-                    Serial.println("La carpeta de prueba ya existe");
                     archive.close();
                 }
 
@@ -649,11 +625,6 @@ void loop()
                 {
                     archive.println((String)Date.year() + "-" + (String)Date.month() + "-" + (String)Date.day() + " P" + (String)product_slct + " " + (String)credits + " " + (String)liters);
                     archive.close();
-                    Serial.println("Archivo de prueba creado correctamente");
-                }
-                else
-                {
-                    Serial.println("Error al crear el archivo de prueba");
                 }
             }
 
@@ -683,11 +654,7 @@ void loop()
             switch (prog_step)
             {
             case 1:
-                lcd.setCursor(0, 1);
-                lcd.print("  MODO PROGRAMADOR");
-                lcd.setCursor(0, 2);
-                lcd.print(lcdCenterStr("ACTIVADO"));
-                buzzHandle(300, 4);
+                change_modeAlert("  MODO PROGRAMADOR", "ACTIVADO");
                 credits = 0;
                 prog_change = 1;
                 lcd.clear();
@@ -905,7 +872,7 @@ void loop()
                         while (digitalRead(cstmr_btns[1]) == 1)
                         {
                         }
-
+                        liters_content[product_slct] = round(liters_content[product_slct]);
                         buzzHandle(100, 1);
                         liters_content[prog_slct] += 1;
                         delay(150);
@@ -919,9 +886,19 @@ void loop()
                         if (liters_content[prog_slct] >= 2)
                         {
                             buzzHandle(100, 1);
+                            liters_content[product_slct] = round(liters_content[product_slct]);
                             liters_content[prog_slct] -= 1;
                             delay(150);
                         }
+                    }
+                    else if (digitalRead(cstmr_btns[3]) == 1)
+                    {
+                        while (digitalRead(cstmr_btns[prog_slct]) == 1)
+                        {
+                        }
+                        buzzHandle(100, 1);
+                        liters_content[product_slct] = 20;
+                        delay(150);
                     }
                     else if (digitalRead(cstmr_btns[0]) == 1)
                     {
@@ -1034,12 +1011,7 @@ void loop()
                         {
                         }
 
-                        lcd.clear();
-                        lcd.setCursor(0, 1);
-                        lcd.print(lcdCenterStr("INICIANDO"));
-                        lcd.setCursor(0, 2);
-                        lcd.print(lcdCenterStr("MANTENIMIENTO"));
-                        buzzHandle(300, 4);
+                        change_modeAlert("INICIANDO", "MANTENIMIENTO");
                         delay(2000);
                         lcd.clear();
                         lcd.setCursor(0, 1);
