@@ -7,7 +7,7 @@
 // Arrays
 const byte leds[6] = {44, 42, 40, 38, 33, 34};
 const byte cstmr_btns[6] = {45, 43, 41, 39, 37, 35};
-const String products[6] = {"PRODUCTO 1", "PRODUCTO 2", "PRODUCTO 3", "PRODUCTO 4", "PRODUCTO 5", "PRODUCTO 6"};
+String products[6];
 int pump_amounts[6];
 unsigned long pump_times[6];
 float liters_content[6];
@@ -146,6 +146,23 @@ float readFloatFromFile(File &archive)
     return 0.0;
 }
 
+String readStringFromEighthChar(File &archive)
+{
+    char buffer[100];
+    int bytesRead = archive.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
+    buffer[bytesRead] = '\0';
+
+    if (bytesRead >= 19) {
+        String data = String(buffer + 19);
+
+        int adjustedLength = max(0, data.length() - 1);
+
+        return data.substring(0, adjustedLength);
+    } else {
+        return String("");
+    }
+}
+
 void setup()
 {
 
@@ -205,21 +222,27 @@ void setup()
         pump_amounts[0] = readFloatFromFile(archive);
         pump_times[0] = readFloatFromFile(archive);
         liters_content[0] = readFloatFromFile(archive);
+        products[0] = readStringFromEighthChar(archive);
         pump_amounts[1] = readFloatFromFile(archive);
         pump_times[1] = readFloatFromFile(archive);
         liters_content[1] = readFloatFromFile(archive);
+        products[1] = readStringFromEighthChar(archive);
         pump_amounts[2] = readFloatFromFile(archive);
         pump_times[2] = readFloatFromFile(archive);
         liters_content[2] = readFloatFromFile(archive);
+        products[2] = readStringFromEighthChar(archive);
         pump_amounts[3] = readFloatFromFile(archive);
         pump_times[3] = readFloatFromFile(archive);
         liters_content[3] = readFloatFromFile(archive);
+        products[3] = readStringFromEighthChar(archive);
         pump_amounts[4] = readFloatFromFile(archive);
         pump_times[4] = readFloatFromFile(archive);
         liters_content[4] = readFloatFromFile(archive);
+        products[4] = readStringFromEighthChar(archive);
         pump_amounts[5] = readFloatFromFile(archive);
         pump_times[5] = readFloatFromFile(archive);
         liters_content[5] = readFloatFromFile(archive);
+        products[5] = readStringFromEighthChar(archive);
 
         archive.close();
         lcd.setCursor(0, 0);
@@ -301,9 +324,10 @@ void loop()
 
             for (byte i = 0; i < 6; i++)
             {
-                archive.println("PRODUCT_" + (String)i + "_PRICE" + " = " + (String)pump_amounts[i]);
-                archive.println("PRODUCT_" + (String)i + "_TIME" + " = " + (String)pump_times[i]);
-                archive.println("PRODUCT_" + (String)i + "_CONTENT" + " = " + (String)liters_content[i]);
+                archive.println("PRODUCTO_PRECIO" + (String)(i + 1) + " = " + (String)pump_amounts[i]);
+                archive.println("PRODUCTO_TIEMPO" + (String)(i + 1) + " = " + (String)pump_times[i]);
+                archive.println("PRODUCTO_CONTEN" + (String)(i + 1) + " = " + (String)liters_content[i]);
+                archive.println("PRODUCTO_NOMBRE" + (String)(i + 1) + " = " + (String)products[i]);
             }
 
             delay(1000);
@@ -311,7 +335,7 @@ void loop()
             archive.close();
         }
 
-        change_modeAlert("  MODO PROGRAMADOR", "DESACTIVADO");
+        change_modeAlert("MODO PROGRAMADOR", "DESACTIVADO");
         prog_mode = false;
         cstmr_mode = true;
         cstmr_step = 1;
@@ -654,7 +678,7 @@ void loop()
             switch (prog_step)
             {
             case 1:
-                change_modeAlert("  MODO PROGRAMADOR", "ACTIVADO");
+                change_modeAlert("MODO PROGRAMADOR", "ACTIVADO");
                 credits = 0;
                 prog_change = 1;
                 lcd.clear();
@@ -1015,7 +1039,7 @@ void loop()
                         delay(2000);
                         lcd.clear();
                         lcd.setCursor(0, 1);
-                        lcd.print(lcdCenterStr("MANTENIMIENTO"));
+                        lcd.print(lcdCenterStr(" MANTENIMIENTO"));
                         lcd.setCursor(0, 2);
                         lcd.print(lcdCenterStr("EN CURSO"));
                         buzzHandle(100, 4);
